@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A350-900 実寸AR</title>
+<title>JAL A350-900 実寸AR</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.4.0/dist/model-viewer.min.js"></script>
 <style>
   body{margin:0;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;background:#0b1626;color:#eef3fa}
@@ -22,13 +22,13 @@
 </head>
 <body>
 <header>
-  <h1>✈️ エアバス A350-900 を実寸ARで見る</h1>
+  <h1>✈️ JAL エアバス A350-900 を実寸ARで見る</h1>
   <p class="sub">iPhone（Safari）／Google Pixel（Chrome）でアプリ不要</p>
 </header>
-<model-viewer id="mv" src="a350-900.glb" ios-src="a350-900.usdz"
-  alt="エアバスA350-900の実寸3Dモデル" ar ar-modes="webxr scene-viewer quick-look"
+<model-viewer id="mv" src="jal-a350-900.glb" ios-src="jal-a350-900.usdz" poster="poster.jpg"
+  alt="JAL塗装のエアバスA350-900（JA01XJ風）の実寸3Dモデル" ar ar-modes="webxr scene-viewer quick-look"
   ar-scale="fixed" ar-placement="floor" camera-controls touch-action="pan-y"
-  camera-orbit="-35deg 65deg 170%" max-camera-orbit="auto auto 300%" shadow-intensity="1" exposure="1.1">
+  camera-orbit="40deg 75deg 105%" max-camera-orbit="auto auto 300%" shadow-intensity="1" exposure="1.1">
   <button slot="ar-button" class="arbtn">📱 ARで実寸表示する</button>
 </model-viewer>
 <main>
@@ -51,15 +51,15 @@
     ・家の中では一部しか入りません。公園・河川敷・広い駐車場など屋外がおすすめです。
   </div>
   <p style="font-size:.85rem">うまく開かない場合の直接リンク：
-    <a id="ql" rel="ar" href="a350-900.usdz#allowsContentScaling=0">iPhone用（AR Quick Look）</a> ／
+    <a id="ql" rel="ar" href="jal-a350-900.usdz#allowsContentScaling=0">iPhone用（AR Quick Look）</a> ／
     <a id="sv" href="#">Pixel用（Scene Viewer）</a></p>
-  <p style="font-size:.8rem;opacity:.7">モデル：寸法はAirbus公表値に基づく簡易（ローポリ）自作モデル。実機の細部・塗装は再現していません。</p>
+  <p style="font-size:.8rem;opacity:.75">モデル：JAL A350-900 初号機（JA01XJ）風の塗装。寸法はAirbus公表値（全長66.80m・翼幅64.75m・全高17.05m）に合わせて自作した3Dモデルです。<br>※非公式のファンメイドモデルです（個人で楽しむ目的）。日本航空（JAL）・Airbusとは一切関係ありません。ロゴ等は参考写真をもとに独自に描き起こしたもので、細部は実機と異なります。</p>
 </main>
 <script>
-  const base = new URL('a350-900.glb', location.href).href;
+  const base = new URL('jal-a350-900.glb', location.href).href;
   document.getElementById('sv').href =
     'intent://arvr.google.com/scene-viewer/1.2?file=' + encodeURIComponent(base) +
-    '&mode=ar_only&resizable=false&title=' + encodeURIComponent('A350-900 実寸') +
+    '&mode=ar_only&resizable=false&title=' + encodeURIComponent('JAL A350-900 実寸') +
     '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=' +
     encodeURIComponent(location.href) + ';end;';
   const ql = document.getElementById('ql');
