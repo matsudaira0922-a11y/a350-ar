@@ -1,0 +1,38 @@
+import pickle, numpy as np, trimesh
+from pxr import Usd, UsdGeom, UsdShade, Sdf, Gf, Vt, UsdUtils
+d=pickle.load(open('parts.pkl','rb'))
+stage=Usd.Stage.CreateNew('a350-900.usdc')
+UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y); UsdGeom.SetStageMetersPerUnit(stage,1.0)
+root=UsdGeom.Xform.Define(stage,'/A350'); stage.SetDefaultPrim(root.GetPrim())
+stage.SetMetadata('customLayerData',{'creator':'procedural A350-900 1:1'})
+for name,(v,f,c,metal,rough) in d.items():
+    m=trimesh.Trimesh(v,f,process=False)
+    col=np.array(c[:3],float); col=col/255 if col.max()>1 else col
+    mesh=UsdGeom.Mesh.Define(stage,f'/A350/{name}')
+    mesh.CreatePointsAttr(Vt.Vec3fArray.FromNumpy(v.astype(np.float32)))
+    mesh.CreateFaceVertexCountsAttr(Vt.IntArray([3]*len(f)))
+    mesh.CreateFaceVertexIndicesAttr(Vt.IntArray(f.flatten().tolist()))
+    mesh.CreateNormalsAttr(Vt.Vec3fArray.FromNumpy(m.vertex_normals.astype(np.float32))); mesh.SetNormalsInterpolation('vertex')
+    mesh.CreateSubdivisionSchemeAttr('none')
+    mesh.CreateExtentAttr([Gf.Vec3f(*v.min(0).tolist()),Gf.Vec3f(*v.max(0).tolist())])
+    mat=UsdShade.Material.Define(stage,f'/A350/Materials/{name}Mat')
+    sh=UsdShade.Shader.Define(stage,f'/A350/Materials/{name}Mat/PBR'); sh.CreateIdAttr('UsdPreviewSurface')
+    sh.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*col.tolist()))
+    sh.CreateInput('metallic',Sdf.ValueTypeNames.Float).Set(float(metal))
+    sh.CreateInput('roughness',Sdf.ValueTypeNames.Float).Set(float(rough))
+    mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(),'surface')
+    UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(mat)
+stage.GetRootLayer().Save()
+print('pkg',UsdUtils.CreateNewARKitUsdzPackage('a350-900.usdc','a350-900.usdz'))
+s=Usd.Stage.Open('a350-900.usdz')
+print('up',UsdGeom.GetStageUpAxis(s),'mpu',UsdGeom.GetStageMetersPerUnit(s))
+bb=UsdGeom.BBoxCache(Usd.TimeCode.Default(),['default']).ComputeWorldBound(s.GetDefaultPrim()).ComputeAlignedRange()
+print('bbox',bb.GetMin(),bb.GetMax(),bb.GetSize())
+from pxr import UsdValidation
+reg=UsdValidation.ValidationRegistry()
+names=[m.name for m in reg.GetAllValidatorMetadata()]
+print('validators',len(names))
+ctx=UsdValidation.ValidationContext([reg.GetOrLoadValidatorByName(n) for n in names if n])
+errs=ctx.Validate(Usd.Stage.Open('a350-900.usdz'))
+for e in errs: print('VAL',e.GetValidator().GetMetadata().name if e.GetValidator() else '', e.GetMessage()[:200])
+print('n errors',len(errs))
