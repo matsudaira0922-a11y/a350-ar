@@ -66,7 +66,9 @@ if DEBUG: raise SystemExit
 from pxr import Usd,UsdGeom,UsdShade,Sdf,Gf,Vt,UsdUtils
 os.makedirs('usd_tmp',exist_ok=True)
 os.makedirs('usd_tmp/textures',exist_ok=True); [shutil.copy(t,'usd_tmp/textures/'+t) for t in ('tex_fuselage.jpg','tex_fin.jpg')]
-path='usd_tmp/jal-a350-900.usdc'
+import shadow
+SA,SB,SPNG=shadow.build(final); shutil.copy(SPNG,'usd_tmp/textures/'+SPNG)
+path='usd_tmp/jal-a350-900-v2.usdc'
 if os.path.exists(path): os.remove(path)
 st=Usd.Stage.CreateNew(path); UsdGeom.SetStageUpAxis(st,UsdGeom.Tokens.y); UsdGeom.SetStageMetersPerUnit(st,1.0)
 root=UsdGeom.Xform.Define(st,'/JAL_A350_900'); st.SetDefaultPrim(root.GetPrim())
@@ -100,10 +102,11 @@ for g in final:
         sh.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*lin(col).tolist()))
     mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(),'surface')
     UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(mat)
+shadow.add_to_stage(st,'/JAL_A350_900',SA,SB,SPNG)
 st.GetRootLayer().Save()
-ok=UsdUtils.CreateNewARKitUsdzPackage(path,'jal-a350-900.usdz'); print('usdz pkg',ok,os.path.getsize('jal-a350-900.usdz'))
+ok=UsdUtils.CreateNewARKitUsdzPackage(path,'jal-a350-900-v2.usdz'); print('usdz pkg',ok,os.path.getsize('jal-a350-900-v2.usdz'))
 from pxr import UsdValidation
-s=Usd.Stage.Open('jal-a350-900.usdz')
+s=Usd.Stage.Open('jal-a350-900-v2.usdz')
 reg=UsdValidation.ValidationRegistry(); names=[m.name for m in reg.GetAllValidatorMetadata()]
 errs=UsdValidation.ValidationContext([reg.GetOrLoadValidatorByName(n) for n in names]).Validate(s)
 print('usd validators',len(names),'issues',len(errs)); [print(' -',e.GetMessage()[:160]) for e in errs]

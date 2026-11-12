@@ -26,7 +26,7 @@ def decals_glow():
 def fuselage_emissive():
     base=np.asarray(Image.open('tex_fuselage.jpg').convert('RGB')).astype(float)
     G=decals_glow()
-    out=np.zeros((TEX,TEX,3))
+    out=np.zeros((TEX,TEX,3)); dif=np.zeros((TEX,TEX,3))
     cols=np.arange(TEX)
     for k in range(NSTRIP):
         r0=k*(STRIP+1); rr=np.arange(STRIP)
@@ -42,9 +42,13 @@ def fuselage_emissive():
         g=map_coordinates(G,[(10-y)*lv.PPM,Sg*lv.PPM],order=1,mode='nearest')
         e=e+g[...,None]*GLOW*0.62
         out[r0:r0+STRIP]=e
+        dif[r0:r0+STRIP]=bl*(0.32+0.68*I[...,None]*TINT)+g[...,None]*GLOW*0.22
+        if k<NSTRIP-1: dif[r0+STRIP]=dif[r0+STRIP-1]
         if k<NSTRIP-1: out[r0+STRIP]=e[-1]
     out[-1]=out[-2]
+    dif[-1]=dif[-2]
     im=Image.fromarray((srgb(np.clip(out,0,1))*255+0.5).astype(np.uint8)); im.save('tex_fuselage_night.jpg',quality=90,optimize=True,subsampling=0)
+    Image.fromarray((srgb(np.clip(dif,0,1))*255+0.5).astype(np.uint8)).save('tex_fuselage_nightdiff.jpg',quality=90,optimize=True,subsampling=0)
 def fin_emissive(size=1024):
     base=np.asarray(Image.open('tex_fin.jpg').convert('RGB')).astype(float); ppm=size/FIN_SZ
     rows,cols=np.mgrid[0:size,0:size]; y=FIN_Y1-(rows+0.5)/ppm; s=FIN_S0+(cols+0.5)/ppm
@@ -56,6 +60,8 @@ def fin_emissive(size=1024):
     I=np.maximum(I,0.10+0.90*spot)
     e=lin(base)*I[...,None]*TINT
     im=Image.fromarray((srgb(np.clip(e,0,1))*255+0.5).astype(np.uint8)); im.save('tex_fin_night.jpg',quality=92,optimize=True,subsampling=0)
+    d=lin(base)*(0.32+0.68*I[...,None]*TINT)
+    Image.fromarray((srgb(np.clip(d,0,1))*255+0.5).astype(np.uint8)).save('tex_fin_nightdiff.jpg',quality=92,optimize=True,subsampling=0)
 def ramp():
     x=np.arange(256)/255.0
     row=srgb(x[:,None]*TINT[None,:])

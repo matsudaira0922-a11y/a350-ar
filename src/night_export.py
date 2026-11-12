@@ -85,19 +85,31 @@ js=json.dumps(gl,separators=(',',':')).encode()
 while len(js)%4: js+=b' '
 out=struct.pack('<III',0x46546C67,2,12+8+len(js)+8+len(bin_))+struct.pack('<II',len(js),0x4E4F534A)+js+struct.pack('<II',len(bin_),0x004E4942)+bytes(bin_)
 open('jal-a350-900-night.glb','wb').write(out); print('glb',len(out),'tris',sum(len(g['f']) for g in final),'materials',len(materials))
-# ---------------- USDZ
+# ---------------- USDZ (iOS Quick Look): versioned names, no texture scale/bias, lit look baked into diffuse AND emissive
 from pxr import Usd,UsdGeom,UsdShade,Sdf,Gf,Vt,UsdUtils
+from PIL import Image
+import shadow
+from night_tex import TINT, srgb
 shutil.rmtree('usd_night',ignore_errors=True); os.makedirs('usd_night/textures')
-for t in ('tex_fuselage.jpg','tex_fin.jpg','tex_fuselage_night.jpg','tex_fin_night.jpg','ramp_night.png'): shutil.copy(t,'usd_night/textures/'+t)
-path='usd_night/jal-a350-900-night.usdc'
+for t in ('tex_fuselage_night.jpg','tex_fin_night.jpg','tex_fuselage_nightdiff.jpg','tex_fin_nightdiff.jpg'): shutil.copy(t,'usd_night/textures/'+t)
+def ramp_png(path,fn):
+    x=np.arange(256)/255.0; row=srgb(np.clip(fn(x),0,1)); arr=np.repeat(row[None,:,:],4,0); Image.fromarray((arr*255+0.5).astype(np.uint8)).save(path,optimize=True)
+SA,SB,SPNG=shadow.build(final); shutil.copy(SPNG,'usd_night/textures/'+SPNG)
+NTEX={'Fuselage':('tex_fuselage_nightdiff.jpg','tex_fuselage_night.jpg'),'Fin':('tex_fin_nightdiff.jpg','tex_fin_night.jpg')}
+for g in final:
+    nm=g['name']
+    if nm in NTEX or nm=='Glass': continue
+    bl=lin(MATS[nm][0]); ef=np.array(emissive_factor(nm))
+    ramp_png(f'usd_night/textures/df_{nm}.png',lambda x,bl=bl:bl[None,:]*(0.32+0.68*x[:,None]*TINT[None,:]))
+    ramp_png(f'usd_night/textures/em_{nm}.png',lambda x,ef=ef:ef[None,:]*x[:,None]*TINT[None,:])
+path='usd_night/jal-a350-900-night-v2.usdc'
 st=Usd.Stage.CreateNew(path); UsdGeom.SetStageUpAxis(st,UsdGeom.Tokens.y); UsdGeom.SetStageMetersPerUnit(st,1.0)
 root=UsdGeom.Xform.Define(st,'/JAL_A350_900_NIGHT'); st.SetDefaultPrim(root.GetPrim()); P='/JAL_A350_900_NIGHT'
-def texnode(mp,nm,file,cs,scale=None):
+def texnode(mp,nm,file):
     rd=UsdShade.Shader.Define(st,f'{mp}/{nm}Reader'); rd.CreateIdAttr('UsdPrimvarReader_float2'); rd.CreateInput('varname',Sdf.ValueTypeNames.String).Set('st')
     tx=UsdShade.Shader.Define(st,f'{mp}/{nm}'); tx.CreateIdAttr('UsdUVTexture')
-    tx.CreateInput('file',Sdf.ValueTypeNames.Asset).Set('./textures/'+file); tx.CreateInput('sourceColorSpace',Sdf.ValueTypeNames.Token).Set(cs)
+    tx.CreateInput('file',Sdf.ValueTypeNames.Asset).Set('./textures/'+file); tx.CreateInput('sourceColorSpace',Sdf.ValueTypeNames.Token).Set('sRGB')
     tx.CreateInput('wrapS',Sdf.ValueTypeNames.Token).Set('clamp'); tx.CreateInput('wrapT',Sdf.ValueTypeNames.Token).Set('clamp')
-    if scale is not None: tx.CreateInput('scale',Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(*scale))
     tx.CreateInput('st',Sdf.ValueTypeNames.Float2).ConnectToSource(rd.ConnectableAPI(),'result'); tx.CreateOutput('rgb',Sdf.ValueTypeNames.Float3); return tx
 for g in final:
     name=g['name']; col,met,rough,_=MATS[name]
@@ -111,21 +123,30 @@ for g in final:
     if name!='Glass':
         uv=g['uv'].copy(); uv[:,1]=1-uv[:,1]
         UsdGeom.PrimvarsAPI(mesh).CreatePrimvar('st',Sdf.ValueTypeNames.TexCoord2fArray,UsdGeom.Tokens.vertex).Set(Vt.Vec2fArray.FromNumpy(uv.astype(np.float32)))
-    if name in ATLAS:
-        d=texnode(mp,'diffuseTex',ATLAS[name][0],'sRGB'); sh.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).ConnectToSource(d.ConnectableAPI(),'rgb')
-        e=texnode(mp,'emissiveTex',ATLAS[name][1],'sRGB'); sh.CreateInput('emissiveColor',Sdf.ValueTypeNames.Color3f).ConnectToSource(e.ConnectableAPI(),'rgb')
+    if name in NTEX: dfile,efile=NTEX[name]
+    elif name!='Glass': dfile,efile=f'df_{name}.png',f'em_{name}.png'
+    if name=='Glass':
+        sh.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*lin(col).tolist())); sh.CreateInput('emissiveColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*GLASS_E))
     else:
-        sh.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*lin(col).tolist()))
-        if name=='Glass': sh.CreateInput('emissiveColor',Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*GLASS_E))
-        else:
-            ef=emissive_factor(name); e=texnode(mp,'emissiveTex','ramp_night.png','sRGB',scale=(ef[0],ef[1],ef[2],1.0))
-            sh.CreateInput('emissiveColor',Sdf.ValueTypeNames.Color3f).ConnectToSource(e.ConnectableAPI(),'rgb')
+        d=texnode(mp,'diffuseTex',dfile); sh.CreateInput('diffuseColor',Sdf.ValueTypeNames.Color3f).ConnectToSource(d.ConnectableAPI(),'rgb')
+        e=texnode(mp,'emissiveTex',efile); sh.CreateInput('emissiveColor',Sdf.ValueTypeNames.Color3f).ConnectToSource(e.ConnectableAPI(),'rgb')
     mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(),'surface'); UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(mat)
+shadow.add_to_stage(st,P,SA,SB,SPNG)
 st.GetRootLayer().Save()
-print('usdz pkg',UsdUtils.CreateNewARKitUsdzPackage(path,'jal-a350-900-night.usdz'),os.path.getsize('jal-a350-900-night.usdz'))
+print('usdz pkg',UsdUtils.CreateNewARKitUsdzPackage(path,'jal-a350-900-night-v2.usdz'),os.path.getsize('jal-a350-900-night-v2.usdz'))
 from pxr import UsdValidation
-s=Usd.Stage.Open('jal-a350-900-night.usdz'); reg=UsdValidation.ValidationRegistry(); names=[m.name for m in reg.GetAllValidatorMetadata()]
+s=Usd.Stage.Open('jal-a350-900-night-v2.usdz'); reg=UsdValidation.ValidationRegistry(); names=[m.name for m in reg.GetAllValidatorMetadata()]
 errs=UsdValidation.ValidationContext([reg.GetOrLoadValidatorByName(n) for n in names]).Validate(s)
 print('usd validators',len(names),'issues',len(errs)); [print(' -',e.GetMessage()[:160]) for e in errs]
 print('up',UsdGeom.GetStageUpAxis(s),'mpu',UsdGeom.GetStageMetersPerUnit(s))
 bb=UsdGeom.BBoxCache(Usd.TimeCode.Default(),['default']).ComputeWorldBound(s.GetDefaultPrim()).ComputeAlignedRange(); print('usd bbox',bb.GetMin(),bb.GetMax())
+# binding audit: every texture input resolves inside the package, every mesh with textured material has st
+bad=0
+for p in s.Traverse():
+    if p.GetTypeName()=='Shader' and p.GetAttribute('inputs:file'):
+        a=p.GetAttribute('inputs:file').Get()
+        if not a or not a.resolvedPath: bad+=1; print('UNRESOLVED',p.GetPath())
+    if p.GetTypeName()=='Mesh' and p.GetName()!='ContactShadow' and p.GetName()!='Glass':
+        if not p.GetAttribute('primvars:st').Get(): bad+=1; print('NO ST',p.GetPath())
+print('binding audit problems',bad)
+mn=min(g['v'][:,1].min() for g in final); print('lowest y in aircraft meshes',mn)

@@ -36,6 +36,7 @@
   <button id="bDay" aria-pressed="true">☀️ 昼モード</button>
   <button id="bNight" aria-pressed="false">🌙 ナイトモード</button>
 </div>
+<p id="cur" style="margin:0;padding:0 18px 6px;font-size:.78rem;opacity:.7"></p>
 <model-viewer id="mv" src="jal-a350-900.glb" ios-src="jal-a350-900.usdz" poster="poster.jpg"
   alt="JAL塗装のエアバスA350-900（JA01XJ風）の実寸3Dモデル" ar ar-modes="webxr scene-viewer quick-look"
   ar-scale="fixed" ar-placement="floor" camera-controls touch-action="pan-y"
@@ -51,7 +52,7 @@
   </table>
   <div class="note" id="nightnote" style="display:none">
     🌙 <b>ナイトモード</b>は、<b>夜など暗い場所で見る用</b>です。機体を下から地上の投光器で照らしたように明るく見え、窓とロゴが光ります（翼端に赤・緑の航空灯、胴体に赤い衝突防止灯つき）。<br>
-    明るい場所ではやや白っぽく見えるので、昼は「昼モード」をおすすめします。端末のARが暗い景色に合わせて少し暗くすることがあります。
+    明るい場所ではやや白っぽく見えるので、昼は「昼モード」をおすすめします。iPhone／Androidは暗い景色に合わせて少し暗くすることがありますが、光る部分（窓・ロゴ・航空灯・下面）は発光する設定にしてあります。
   </div>
   <div class="note">
     <b>使い方</b><br>
@@ -73,8 +74,8 @@
 </main>
 <script>
   const MODES={
-    day:{glb:'jal-a350-900.glb',usdz:'jal-a350-900.usdz',poster:'poster.jpg',title:'JAL A350-900 実寸',env:'neutral',exp:'1.1',shadow:'1'},
-    night:{glb:'jal-a350-900-night.glb',usdz:'jal-a350-900-night.usdz',poster:'poster-night.jpg',title:'JAL A350-900 ナイト 実寸',env:'dark_env.jpg',exp:'1',shadow:'0'}};
+    day:{glb:'jal-a350-900.glb',usdz:'jal-a350-900-v2.usdz',poster:'poster.jpg',title:'JAL A350-900 実寸',env:'neutral',exp:'1.1',shadow:'1'},
+    night:{glb:'jal-a350-900-night.glb',usdz:'jal-a350-900-night-v2.usdz',poster:'poster-night.jpg',title:'JAL A350-900 ナイト 実寸',env:'dark_env.jpg',exp:'1',shadow:'0'}};
   const mv=document.getElementById('mv'), sv=document.getElementById('sv'), ql=document.getElementById('ql');
   ql.appendChild(Object.assign(document.createElement('img'),{src:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',alt:'',style:'display:none'}));
   function setMode(name){
@@ -90,6 +91,7 @@
     document.getElementById('nightnote').style.display=name==='night'?'block':'none';
     document.getElementById('bDay').setAttribute('aria-pressed',name==='day');
     document.getElementById('bNight').setAttribute('aria-pressed',name==='night');
+    document.getElementById('cur').textContent='AR用ファイル： iPhone＝'+m.usdz+' ／ Android＝'+m.glb;
     try{localStorage.setItem('a350mode',name)}catch(e){}
   }
   document.getElementById('bDay').onclick=()=>setMode('day');
