@@ -18,6 +18,13 @@
   .note{background:#13243d;border-radius:10px;padding:10px 14px;margin:10px 0}
   a{color:#8fc2ff}
   #noar{display:none;color:#ffcf7a}
+  .modes{display:flex;gap:8px;padding:8px 18px 10px}
+  .modes button{flex:1;padding:11px 8px;font-size:1rem;font-weight:700;border-radius:12px;border:2px solid #34527e;background:#13243d;color:#cfe0f7}
+  .modes button[aria-pressed=true]{background:#0a5bd8;border-color:#7fb0ff;color:#fff}
+  body.night{background:#04060b}
+  body.night model-viewer{background:linear-gradient(#02040a,#0a1020 70%,#1a1510)}
+  body.night .note{background:#0c1220}
+  body.night .modes button[aria-pressed=true]{background:#8a5a12;border-color:#ffcf7a}
 </style>
 </head>
 <body>
@@ -25,10 +32,14 @@
   <h1>✈️ JAL エアバス A350-900 を実寸ARで見る</h1>
   <p class="sub">iPhone（Safari）／Google Pixel（Chrome）でアプリ不要</p>
 </header>
+<div class="modes" role="group" aria-label="表示モード">
+  <button id="bDay" aria-pressed="true">☀️ 昼モード</button>
+  <button id="bNight" aria-pressed="false">🌙 ナイトモード</button>
+</div>
 <model-viewer id="mv" src="jal-a350-900.glb" ios-src="jal-a350-900.usdz" poster="poster.jpg"
   alt="JAL塗装のエアバスA350-900（JA01XJ風）の実寸3Dモデル" ar ar-modes="webxr scene-viewer quick-look"
   ar-scale="fixed" ar-placement="floor" camera-controls touch-action="pan-y"
-  camera-target="23.6m 6m -33.6m" camera-orbit="-38deg 80deg 115m" min-camera-orbit="auto auto 15m" max-camera-orbit="auto auto 300m" field-of-view="40deg" shadow-intensity="1" exposure="1.1">
+  camera-target="23.6m 6m -33.6m" camera-orbit="-38deg 80deg 115m" min-camera-orbit="auto auto 15m" max-camera-orbit="auto auto 300m" field-of-view="40deg" shadow-intensity="1" exposure="1.1" environment-image="neutral">
   <button slot="ar-button" class="arbtn">📱 ARで実寸表示する</button>
 </model-viewer>
 <main>
@@ -38,6 +49,10 @@
     <tr><td>翼幅</td><td>64.75 m</td></tr>
     <tr><td>全高</td><td>17.05 m</td></tr>
   </table>
+  <div class="note" id="nightnote" style="display:none">
+    🌙 <b>ナイトモード</b>は、<b>夜など暗い場所で見る用</b>です。機体を下から地上の投光器で照らしたように明るく見え、窓とロゴが光ります（翼端に赤・緑の航空灯、胴体に赤い衝突防止灯つき）。<br>
+    明るい場所ではやや白っぽく見えるので、昼は「昼モード」をおすすめします。端末のARが暗い景色に合わせて少し暗くすることがあります。
+  </div>
   <div class="note">
     <b>使い方</b><br>
     1. 上の「ARで実寸表示する」をタップ<br>
@@ -57,16 +72,31 @@
   <p style="font-size:.8rem;opacity:.75">モデル：JAL A350-900 初号機（JA01XJ）風の塗装。寸法はAirbus公表値（全長66.80m・翼幅64.75m・全高17.05m）に合わせて自作した3Dモデルです。<br>※非公式のファンメイドモデルです（個人で楽しむ目的）。日本航空（JAL）・Airbusとは一切関係ありません。ロゴ等は参考写真をもとに独自に描き起こしたもので、細部は実機と異なります。</p>
 </main>
 <script>
-  const base = new URL('jal-a350-900.glb', location.href).href;
-  document.getElementById('sv').href =
-    'intent://arvr.google.com/scene-viewer/1.2?file=' + encodeURIComponent(base) +
-    '&mode=ar_only&resizable=false&title=' + encodeURIComponent('JAL A350-900 実寸') +
-    '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=' +
-    encodeURIComponent(location.href) + ';end;';
-  const ql = document.getElementById('ql');
+  const MODES={
+    day:{glb:'jal-a350-900.glb',usdz:'jal-a350-900.usdz',poster:'poster.jpg',title:'JAL A350-900 実寸',env:'neutral',exp:'1.1',shadow:'1'},
+    night:{glb:'jal-a350-900-night.glb',usdz:'jal-a350-900-night.usdz',poster:'poster-night.jpg',title:'JAL A350-900 ナイト 実寸',env:'dark_env.jpg',exp:'1',shadow:'0'}};
+  const mv=document.getElementById('mv'), sv=document.getElementById('sv'), ql=document.getElementById('ql');
   ql.appendChild(Object.assign(document.createElement('img'),{src:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',alt:'',style:'display:none'}));
-  const mv = document.getElementById('mv');
-  mv.addEventListener('load', () => { if (!mv.canActivateAR) document.getElementById('noar').style.display='block'; });
+  function setMode(name){
+    const m=MODES[name]; if(!m) return;
+    mv.setAttribute('ios-src',m.usdz); mv.setAttribute('poster',m.poster);
+    mv.setAttribute('environment-image',m.env); mv.setAttribute('exposure',m.exp); mv.setAttribute('shadow-intensity',m.shadow);
+    mv.setAttribute('src',m.glb);
+    ql.href=m.usdz+'#allowsContentScaling=0';
+    const file=new URL(m.glb,location.href).href;
+    sv.href='intent://arvr.google.com/scene-viewer/1.2?file='+encodeURIComponent(file)+'&mode=ar_only&resizable=false&title='+encodeURIComponent(m.title)+
+      '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(location.href)+';end;';
+    document.body.classList.toggle('night',name==='night');
+    document.getElementById('nightnote').style.display=name==='night'?'block':'none';
+    document.getElementById('bDay').setAttribute('aria-pressed',name==='day');
+    document.getElementById('bNight').setAttribute('aria-pressed',name==='night');
+    try{localStorage.setItem('a350mode',name)}catch(e){}
+  }
+  document.getElementById('bDay').onclick=()=>setMode('day');
+  document.getElementById('bNight').onclick=()=>setMode('night');
+  mv.addEventListener('load',()=>{ if(!mv.canActivateAR) document.getElementById('noar').style.display='block'; });
+  let init=new URLSearchParams(location.search).get('mode'); try{init=init||localStorage.getItem('a350mode')}catch(e){}
+  setMode(init==='night'?'night':'day');
 </script>
 </body>
 </html>
