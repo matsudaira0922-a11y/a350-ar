@@ -1,6 +1,19 @@
 import numpy as np, json, struct, os, shutil
 from geom_common import *
 final=np.load('final.npy',allow_pickle=True); MATS=json.load(open('mats.json'))
+# --- placement: nose tip 20 m in front of origin (+Z toward viewer), plane extends to -Z
+SHIFT=-(L/2+20.0)
+for g in final: g['v']=g['v'].copy(); g['v'][:,2]+=SHIFT
+# tiny (1 mm) anchor triangle mirrored behind the viewer so the bounding box is centred on the origin too
+# (covers viewers that place by bounding-box centre instead of origin)
+zmin=min(g['v'][:,2].min() for g in final)
+for g in final:
+    if g['name']=='Rubber':
+        n0=len(g['v'])
+        g['v']=np.vstack([g['v'],[[0,0,-zmin],[0.001,0,-zmin],[0,0.001,-zmin]]])
+        g['n']=np.vstack([g['n'],[[0,0,1.0]]*3]); g['f']=np.vstack([g['f'],[[n0,n0+1,n0+2]]])
+allv=np.vstack([g['v'] for g in final]); print('bounds',allv.min(0).round(3),allv.max(0).round(3))
+
 def lin(c): c=np.asarray(c)/255.0; return np.where(c<=0.04045,c/12.92,((c+0.055)/1.055)**2.4)
 # ---------------- GLB
 bin_=bytearray(); views=[]; accs=[]

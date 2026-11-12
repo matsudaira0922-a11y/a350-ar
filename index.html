@@ -28,7 +28,7 @@
 <model-viewer id="mv" src="jal-a350-900.glb" ios-src="jal-a350-900.usdz" poster="poster.jpg"
   alt="JAL塗装のエアバスA350-900（JA01XJ風）の実寸3Dモデル" ar ar-modes="webxr scene-viewer quick-look"
   ar-scale="fixed" ar-placement="floor" camera-controls touch-action="pan-y"
-  camera-orbit="40deg 75deg 105%" max-camera-orbit="auto auto 300%" shadow-intensity="1" exposure="1.1">
+  camera-target="0m 6m -53.4m" camera-orbit="35deg 75deg 150m" min-camera-orbit="auto auto 15m" max-camera-orbit="auto auto 250m" field-of-view="40deg" shadow-intensity="1" exposure="1.1">
   <button slot="ar-button" class="arbtn">📱 ARで実寸表示する</button>
 </model-viewer>
 <main>
@@ -41,8 +41,9 @@
   <div class="note">
     <b>使い方</b><br>
     1. 上の「ARで実寸表示する」をタップ<br>
-    2. カメラで地面をゆっくり映して、機体を置く<br>
-    3. 原点は機体中央の真下。後ろに下がると全体が見えます（全体を見るには約80〜100m離れる必要あり）
+    2. 自分のすぐ前の地面にカメラを向けて、ゆっくり動かして地面を認識させる<br>
+    3. 置いた位置から<b>約20m先に機首があなたの方を向いた状態</b>で現れます（機体はそこから奥へ約67m続きます）<br>
+    4. 前方に約20m＋機体の長さ分の空きスペースがある場所で使ってください
   </div>
   <div class="note">
     <b>実寸のままにするコツ</b><br>
