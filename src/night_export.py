@@ -102,9 +102,10 @@ for g in final:
     bl=lin(MATS[nm][0]); ef=np.array(emissive_factor(nm))
     ramp_png(f'usd_night/textures/df_{nm}.png',lambda x,bl=bl:bl[None,:]*(0.32+0.68*x[:,None]*TINT[None,:]))
     ramp_png(f'usd_night/textures/em_{nm}.png',lambda x,ef=ef:ef[None,:]*x[:,None]*TINT[None,:])
-path='usd_night/jal-a350-900-night-v2.usdc'
+path='usd_night/jal-a350-900-night-v3.usdc'
 st=Usd.Stage.CreateNew(path); UsdGeom.SetStageUpAxis(st,UsdGeom.Tokens.y); UsdGeom.SetStageMetersPerUnit(st,1.0)
 root=UsdGeom.Xform.Define(st,'/JAL_A350_900_NIGHT'); st.SetDefaultPrim(root.GetPrim()); P='/JAL_A350_900_NIGHT'
+import anchor; anchor.apply(root.GetPrim())
 def texnode(mp,nm,file):
     rd=UsdShade.Shader.Define(st,f'{mp}/{nm}Reader'); rd.CreateIdAttr('UsdPrimvarReader_float2'); rd.CreateInput('varname',Sdf.ValueTypeNames.String).Set('st')
     tx=UsdShade.Shader.Define(st,f'{mp}/{nm}'); tx.CreateIdAttr('UsdUVTexture')
@@ -133,9 +134,9 @@ for g in final:
     mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(),'surface'); UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(mat)
 shadow.add_to_stage(st,P,SA,SB,SPNG)
 st.GetRootLayer().Save()
-print('usdz pkg',UsdUtils.CreateNewARKitUsdzPackage(path,'jal-a350-900-night-v2.usdz'),os.path.getsize('jal-a350-900-night-v2.usdz'))
+print('usdz pkg',UsdUtils.CreateNewARKitUsdzPackage(path,'jal-a350-900-night-v3.usdz'),os.path.getsize('jal-a350-900-night-v3.usdz'))
 from pxr import UsdValidation
-s=Usd.Stage.Open('jal-a350-900-night-v2.usdz'); reg=UsdValidation.ValidationRegistry(); names=[m.name for m in reg.GetAllValidatorMetadata()]
+s=Usd.Stage.Open('jal-a350-900-night-v3.usdz'); reg=UsdValidation.ValidationRegistry(); names=[m.name for m in reg.GetAllValidatorMetadata()]
 errs=UsdValidation.ValidationContext([reg.GetOrLoadValidatorByName(n) for n in names]).Validate(s)
 print('usd validators',len(names),'issues',len(errs)); [print(' -',e.GetMessage()[:160]) for e in errs]
 print('up',UsdGeom.GetStageUpAxis(s),'mpu',UsdGeom.GetStageMetersPerUnit(s))

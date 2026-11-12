@@ -12,6 +12,18 @@
   .sub{opacity:.8;font-size:.9rem;margin:0}
   model-viewer{width:100%;height:58vh;background:linear-gradient(#cfe3f7,#eef4fa)}
   .arbtn{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);padding:14px 26px;font-size:1.05rem;font-weight:700;border:none;border-radius:999px;background:#0a5bd8;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  model-viewer::part(default-ar-button){display:none}
+  #guide{position:fixed;inset:0;background:rgba(2,6,14,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:14px;box-sizing:border-box}
+  #guide .card{background:#13243d;border:1px solid #34527e;border-radius:16px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:16px 18px;line-height:1.6;font-size:.95rem}
+  #guide h2{font-size:1.1rem;margin:0 0 6px}
+  #guide ol{margin:6px 0 10px;padding-left:1.3em}
+  #guide li{margin:5px 0}
+  #guide .go{display:block;width:100%;padding:14px;font-size:1.05rem;font-weight:700;border:none;border-radius:999px;background:#0a5bd8;color:#fff;margin-top:6px}
+  #guide .go:disabled{background:#3a4a63;color:#9fb0c8}
+  #guide .bar{height:5px;background:#26395a;border-radius:3px;overflow:hidden;margin-top:10px}
+  #guide .bar i{display:block;height:100%;width:0;background:#7fb0ff}
+  #guide .lnk{display:flex;justify-content:space-between;margin-top:10px;font-size:.85rem}
+  #guide .lnk a{color:#8fc2ff}
   main{padding:8px 18px 28px;line-height:1.65;font-size:.95rem}
   table{border-collapse:collapse;margin:6px 0 12px}
   td{padding:2px 12px 2px 0}
@@ -41,8 +53,25 @@
   alt="JAL塗装のエアバスA350-900（JA01XJ風）の実寸3Dモデル" ar ar-modes="webxr scene-viewer quick-look"
   ar-scale="fixed" ar-placement="floor" camera-controls touch-action="pan-y"
   camera-target="23.6m 6m -33.6m" camera-orbit="-38deg 80deg 115m" min-camera-orbit="auto auto 15m" max-camera-orbit="auto auto 300m" field-of-view="40deg" shadow-intensity="1" exposure="1.1" environment-image="neutral">
-  <button slot="ar-button" class="arbtn">📱 ARで実寸表示する</button>
+  <button slot="ar-button" id="arOpen" class="arbtn">📱 ARで実寸表示する</button>
 </model-viewer>
+<div id="guide" role="dialog" aria-modal="true" aria-labelledby="gt">
+  <div class="card">
+    <h2 id="gt">📍 ARを開く前に（地面を正しく認識させるコツ）</h2>
+    <p style="margin:0;font-size:.88rem;opacity:.85">ARは開いた直後、最初に見つけた平面に機体を置きます。車の屋根や低い壁を床と間違えると、機体が宙に浮いて見えます。</p>
+    <ol>
+      <li><b>広い屋外</b>で、車・壁・植え込み・ベンチから<b>2m以上離れて</b>立つ。</li>
+      <li>開いたら<b>足元〜2m先の地面</b>にカメラを向ける（車や段差は画面に入れない）。</li>
+      <li>「iPhoneを動かして…」の表示の間、<b>ゆっくり左右に動かして3〜5秒</b>地面の模様を見せる。</li>
+      <li>機体が出たら、<b>機体の下の影が地面に付いているか</b>確認。浮いて見えたら<b>指1本で機体をドラッグ</b>して地面の上に置き直す（別の平面に乗り移ります）。それでもだめなら<b>✕で閉じてもう一度</b>開く。</li>
+      <li>2本指で<b>回転</b>、ピンチで拡大縮小（<b>100%が実寸</b>）。</li>
+    </ol>
+    <button class="go" id="goAR" disabled>準備中…</button>
+    <div class="bar"><i id="gbar"></i></div>
+    <div class="lnk"><a href="#" id="gskip">案内を飛ばして開く</a><a href="#" id="gclose">やめる</a></div>
+    <label style="display:block;margin-top:10px;font-size:.85rem"><input type="checkbox" id="hint" checked> AR画面の下にヒント帯を表示する（iPhone）</label>
+  </div>
+</div>
 <main>
   <p id="noar">この端末／ブラウザではARが使えないようです。iPhoneはSafari、PixelはChromeで開いてください。</p>
   <table>
@@ -57,11 +86,16 @@
   <div class="note">
     <b>使い方</b><br>
     1. 上の「ARで実寸表示する」をタップ<br>
-    2. 自分のすぐ前の地面にカメラを向けて、ゆっくり動かして地面を認識させる<br>
+    2. 案内を読んで数秒待ち、「ARを開く」をタップ。自分のすぐ前の<b>地面</b>にカメラを向け、ゆっくり動かして地面を認識させる（車の屋根などを映さない）<br>
     3. 置いた位置の<b>約10m先に機首</b>が現れます。機体は少し左前から見た向き（正面から<b>45°右</b>に回り込んだ位置）で、<b>機首とパイロット席の窓、左側面</b>が見えます<br>
     4. 機体は機首から右奥へ約67m続きます。全体を見るには、体を右へ回しながら後ろに下がってください（前方〜右手に約70m四方の空きスペースが必要）
   </div>
   <div class="note">
+    <b>置き直し（iPhone）</b><br>
+    ・機体が浮いて見える／高さがおかしい：<b>指1本で機体をドラッグ</b>して地面の上へ。<br>
+    ・2本指で回転。拡大縮小を触ったら画面上のパーセント表示で<b>100%</b>に戻す。<br>
+    ・認識をやり直す：左上の✕でARを閉じて、もう一度「ARで実寸表示する」。<br>
+    ・Pixel：画面に出る床の目印がしっかり出てからタップして置いてください。<br><br>
     <b>実寸のままにするコツ</b><br>
     ・iPhone：ピンチ操作で拡大縮小すると画面上部に％が出ます。<b>100%</b>が実寸です（ダブルタップで100%に戻ります）。<br>
     ・Pixel：実寸固定で開きます（ピンチで拡大縮小できない設定）。<br>
@@ -69,21 +103,27 @@
   </div>
   <p style="font-size:.85rem">うまく開かない場合の直接リンク：
     <a id="ql" rel="ar" href="jal-a350-900.usdz#allowsContentScaling=0">iPhone用（AR Quick Look）</a> ／
-    <a id="sv" href="#">Pixel用（Scene Viewer）</a></p>
+    <a id="sv" href="#">Pixel用（Scene Viewer）</a><br>
+    iPhoneで機体が置けない・おかしい時の予備（旧設定版）：<a id="ql2" rel="ar" href="jal-a350-900-v2.usdz#allowsContentScaling=0">旧版</a></p>
   <p style="font-size:.8rem;opacity:.75">モデル：JAL A350-900 初号機（JA01XJ）風の塗装。寸法はAirbus公表値（全長66.80m・翼幅64.75m・全高17.05m）に合わせて自作した3Dモデルです。<br>※非公式のファンメイドモデルです（個人で楽しむ目的）。日本航空（JAL）・Airbusとは一切関係ありません。ロゴ等は参考写真をもとに独自に描き起こしたもので、細部は実機と異なります。</p>
 </main>
 <script>
   const MODES={
-    day:{glb:'jal-a350-900.glb',usdz:'jal-a350-900-v2.usdz',poster:'poster.jpg',title:'JAL A350-900 実寸',env:'neutral',exp:'1.1',shadow:'1'},
-    night:{glb:'jal-a350-900-night.glb',usdz:'jal-a350-900-night-v2.usdz',poster:'poster-night.jpg',title:'JAL A350-900 ナイト 実寸',env:'dark_env.jpg',exp:'1',shadow:'0'}};
-  const mv=document.getElementById('mv'), sv=document.getElementById('sv'), ql=document.getElementById('ql');
+    day:{glb:'jal-a350-900.glb',usdz:'jal-a350-900-v3.usdz',old:'jal-a350-900-v2.usdz',poster:'poster.jpg',title:'JAL A350-900 実寸',env:'neutral',exp:'1.1',shadow:'1'},
+    night:{glb:'jal-a350-900-night.glb',usdz:'jal-a350-900-night-v3.usdz',old:'jal-a350-900-night-v2.usdz',poster:'poster-night.jpg',title:'JAL A350-900 ナイト 実寸',env:'dark_env.jpg',exp:'1',shadow:'0'}};
+  const mv=document.getElementById('mv'), sv=document.getElementById('sv'), ql=document.getElementById('ql'), ql2=document.getElementById('ql2');
+  let cur='day';
+  const BANNER=new URL('ar-banner.html',location.href).href;
+  const hintOn=()=>document.getElementById('hint').checked;
+  const hintFrag=()=>hintOn()?'&custom='+BANNER+'&customHeight=small':'';
+  const iosUrl=f=>hintOn()?f+'#custom='+BANNER+'&customHeight=small':f;
   ql.appendChild(Object.assign(document.createElement('img'),{src:'data:image/gif;base64,R0lGODlhAQABAAAAACw=',alt:'',style:'display:none'}));
   function setMode(name){
     const m=MODES[name]; if(!m) return;
-    mv.setAttribute('ios-src',m.usdz); mv.setAttribute('poster',m.poster);
+    mv.setAttribute('ios-src',iosUrl(m.usdz)); mv.setAttribute('poster',m.poster);
     mv.setAttribute('environment-image',m.env); mv.setAttribute('exposure',m.exp); mv.setAttribute('shadow-intensity',m.shadow);
     mv.setAttribute('src',m.glb);
-    ql.href=m.usdz+'#allowsContentScaling=0';
+    ql.href=m.usdz+'#allowsContentScaling=0'+hintFrag(); ql2.href=m.old+'#allowsContentScaling=0'; cur=name;
     const file=new URL(m.glb,location.href).href;
     sv.href='intent://arvr.google.com/scene-viewer/1.2?file='+encodeURIComponent(file)+'&mode=ar_only&resizable=false&title='+encodeURIComponent(m.title)+
       '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(location.href)+';end;';
@@ -91,11 +131,30 @@
     document.getElementById('nightnote').style.display=name==='night'?'block':'none';
     document.getElementById('bDay').setAttribute('aria-pressed',name==='day');
     document.getElementById('bNight').setAttribute('aria-pressed',name==='night');
-    document.getElementById('cur').textContent='AR用ファイル： iPhone＝'+m.usdz+' ／ Android＝'+m.glb;
+    document.getElementById('cur').textContent='AR用ファイル： iPhone＝'+m.usdz+(hintOn()?'（ヒント帯あり）':'')+' ／ Android＝'+m.glb;
     try{localStorage.setItem('a350mode',name)}catch(e){}
   }
   document.getElementById('bDay').onclick=()=>setMode('day');
   document.getElementById('bNight').onclick=()=>setMode('night');
+  // ---- pre-AR guidance step ----
+  const guide=document.getElementById('guide'), goAR=document.getElementById('goAR'), gbar=document.getElementById('gbar');
+  let timer=null;
+  function closeGuide(){ guide.style.display='none'; clearInterval(timer); }
+  function openGuide(){
+    guide.style.display='flex'; goAR.disabled=true; let t=0; const T=5000, t0=Date.now();
+    gbar.style.width='0'; goAR.textContent='内容を確認してください（あと5秒）';
+    clearInterval(timer);
+    timer=setInterval(()=>{ t=Date.now()-t0; gbar.style.width=Math.min(100,t/T*100)+'%';
+      if(t>=T){ clearInterval(timer); goAR.disabled=false; goAR.textContent='📱 ARを開く'; }
+      else goAR.textContent='内容を確認してください（あと'+Math.ceil((T-t)/1000)+'秒）'; },100);
+  }
+  function launch(){ closeGuide(); mv.activateAR(); }
+  document.getElementById('arOpen').addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); openGuide(); });
+  goAR.onclick=launch;
+  document.getElementById('gskip').onclick=e=>{e.preventDefault(); launch();};
+  document.getElementById('gclose').onclick=e=>{e.preventDefault(); closeGuide();};
+  document.getElementById('hint').onchange=()=>{ try{localStorage.setItem('a350hint',hintOn()?'1':'0')}catch(e){} setMode(cur); };
+  try{ if(localStorage.getItem('a350hint')==='0') document.getElementById('hint').checked=false; }catch(e){}
   mv.addEventListener('load',()=>{ if(!mv.canActivateAR) document.getElementById('noar').style.display='block'; });
   let init=new URLSearchParams(location.search).get('mode'); try{init=init||localStorage.getItem('a350mode')}catch(e){}
   setMode(init==='night'?'night':'day');
