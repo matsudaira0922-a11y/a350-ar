@@ -7,7 +7,7 @@ PPM=100  # decal canvas px per metre
 DW,DH=int(L*PPM)+1, 1000  # y 0..10 m
 FONT_SANS='/usr/share/fonts/truetype/sand-box/google/Noto Sans/NotoSans-VariableFont_wdth,wght.ttf'
 FONT_HUBOT='/usr/share/fonts/truetype/sand-box/google/Hubot Sans/HubotSans-Italic-VariableFont_wdth,wght.ttf'
-JAL_RED=(204,0,17); INK=(28,28,32)
+JAL_RED=(204,0,17); INK=(20,26,46)
 
 def text_img(txt, font_path, size=400, wght=800, wdth=None, shear=0.0, fill=(0,0,0)):
     f=ImageFont.truetype(font_path,size)
@@ -119,7 +119,7 @@ def paint_fuselage():
         pts=np.c_[Sg.ravel(),phi.ravel()]
         inm=poly.contains_points(pts).reshape(Sg.shape)
         # soft edge via small blur later; mask colour
-        img[inm]=(18,20,24)
+        pass  # cockpit mask is real geometry now (nosewin.py)
         # subtle panel lines & belly shade
         for sl in (2.05,13.2,21.4,41.0,52.6,58.0):
             img[np.abs(Sg-sl)<0.012]*=0.9

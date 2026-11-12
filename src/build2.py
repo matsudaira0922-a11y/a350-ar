@@ -262,6 +262,55 @@ for sd in (1,-1):
     cyl([x,1.6,Z(MS)+0.2],[x,1.2,Z(MS)+0.35],0.05,'Metal')     # torque link
     box([x+sd*0.40,2.55,Z(MS)],[0.04,1.7,1.25],'White')        # leg door
 
+# ------------------------------------------------------------------ cockpit windows (real geometry)
+import nosewin as nw
+POL=nw.build_polys()
+def add_patch(V,F_,N,mat): add(V,F_,mat,n=N,orient=False)
+for side in ('L','R'):
+    # black mask skin
+    V,F_,N=nw.fill_patch(POL['mask_'+side],0.020,0.05); add_patch(V,F_,N,'Mask')
+    for nm in ('ws','sw1','sw2'):
+        P=POL[nm+'_'+side]
+        V,F_,N=nw.ring_strip(nw.dense(P,0.04),0.024,0.034); add_patch(V,F_,N,'Metal')      # silver rim
+        Pin=nw.offset_poly(nw.dense(P,0.04),-0.024)
+        V,F_,N=nw.fill_patch(Pin,0.040,0.04); add_patch(V,F_,N,'Glass')
+# centre post between windscreens + wiper arms
+V,F_,N=nw.fill_patch(np.array([[-0.045,5.88],[0.045,5.88],[0.045,6.70],[-0.045,6.70]]),0.030,0.03); add_patch(V,F_,N,'Mask')
+def surf_cyl(x0,y0,x1,y1,r,off,mat):
+    a=nw.surf_point(x0,y0,off); b=nw.surf_point(x1,y1,off)
+    if a and b: cyl(a[0],b[0],r,mat,8)
+for sx in (-1,1):
+    surf_cyl(sx*0.10,5.80,sx*0.30,5.73,0.008,0.07,'Rubber')     # wiper arm
+    surf_cyl(sx*0.10,5.80,sx*0.14,5.62,0.007,0.05,'Rubber')     # wiper pivot
+def probe(x,y,mat='DarkMetal',ring_r=0.17):
+    r=nw.surf_point(x,y,0.0)
+    if not r: return
+    p,n=r
+    cyl(p,p+n*0.07,0.012,mat,8)
+    cyl(p+n*0.07,p+n*0.07+np.array([0,0,-0.1]),0.006,mat,6)
+    # red dashed ring
+    t=np.linspace(0,2*np.pi,48,endpoint=False); ring=np.c_[x+ring_r*np.cos(t),y+ring_r*np.sin(t)]
+    V,F_,N=nw.ring_strip(ring,0.012,0.012)
+    keep=np.array([(i//2)%2==0 for i in range(len(F_)//2) for _ in (0,1)])
+    add_patch(V,F_[keep],N,'Red')
+for sx in (-1,1):
+    probe(sx*1.52,4.64)
+    # static port panel: rounded rect with red dashed outline + grey disc
+    hw,hh=0.15,0.24; rr=0.04
+    pts=[]
+    for cx_,cy_,a0 in ((hw-rr,hh-rr,0),(-hw+rr,hh-rr,90),(-hw+rr,-hh+rr,180),(hw-rr,-hh+rr,270)):
+        for a in np.radians(np.linspace(a0,a0+90,6)): pts.append((cx_+rr*np.cos(a),cy_+rr*np.sin(a)))
+    pts=np.array(pts); pts=pts+np.array([sx*1.59,5.33])
+    V,F_,N=nw.ring_strip(nw.dense(pts,0.03),0.010,0.010)
+    keep=np.array([(i//5)%2==0 for i in range(len(F_)//2) for _ in (0,1)]); add_patch(V,F_[keep],N,'Red')
+    t=np.linspace(0,2*np.pi,24,endpoint=False); disc=np.c_[sx*1.59+0.075*np.cos(t),5.33+0.075*np.sin(t)]
+    V,F_,N=nw.fill_patch(disc,0.014,0.03); add_patch(V,F_,N,'Metal')
+# small outlined panel on top of nose ahead of the windows
+t=np.linspace(0,2*np.pi,60,endpoint=False)
+ov=np.c_[0.34*np.cos(t),0.085*np.sin(t)]; rot=np.radians(14); R2=np.array([[np.cos(rot),-np.sin(rot)],[np.sin(rot),np.cos(rot)]])
+ov=ov@R2.T+np.array([-0.62,7.50])
+V,F_,N=nw.ring_strip(ov,0.014,0.010); add_patch(V,F_,N,'WingGrey')
+
 # ------------------------------------------------------------------ assemble per material
 MATS={ # name: (baseColor sRGB, metallic, roughness, texture)
  'Fuselage':((255,255,255),0.0,0.42,'tex_fuselage.jpg'),
@@ -273,7 +322,11 @@ MATS={ # name: (baseColor sRGB, metallic, roughness, texture)
  'DarkMetal':((70,72,78),0.85,0.45,None),
  'Fan':((52,54,60),0.9,0.38,None),
  'Gear':((150,154,160),0.6,0.42,None),
- 'Rubber':((22,22,24),0.0,0.88,None)}
+ 'Rubber':((22,22,24),0.0,0.88,None),
+ 'Mask':((20,22,27),0.0,0.30,None),
+ 'Glass':((14,24,42),0.35,0.07,None)}
+REMAP={'Fan':'DarkMetal','Gear':'WingGrey'}
+for m in MESHES: m['mat']=REMAP.get(m['mat'],m['mat'])
 groups={}
 for m in MESHES: groups.setdefault(m['mat'],[]).append(m)
 final=[]

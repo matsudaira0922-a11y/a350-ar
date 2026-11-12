@@ -1,17 +1,24 @@
 import numpy as np, json, struct, os, shutil
 from geom_common import *
 final=np.load('final.npy',allow_pickle=True); MATS=json.load(open('mats.json'))
-# --- placement: nose tip 20 m in front of origin (+Z toward viewer), plane extends to -Z
-SHIFT=-(L/2+20.0)
-for g in final: g['v']=g['v'].copy(); g['v'][:,2]+=SHIFT
-# tiny (1 mm) anchor triangle mirrored behind the viewer so the bounding box is centred on the origin too
-# (covers viewers that place by bounding-box centre instead of origin)
-zmin=min(g['v'][:,2].min() for g in final)
-for g in final:
-    if g['name']=='Rubber':
-        n0=len(g['v'])
-        g['v']=np.vstack([g['v'],[[0,0,-zmin],[0.001,0,-zmin],[0,0.001,-zmin]]])
-        g['n']=np.vstack([g['n'],[[0,0,1.0]]*3]); g['f']=np.vstack([g['f'],[[n0,n0+1,n0+2]]])
+# --- placement: nose tip 10 m ahead of the placement point, aircraft yawed 45 deg so the user sees nose + port side
+DEBUG=bool(os.environ.get('DEBUG'))
+NOSE_DIST=10.0; YAW=np.radians(-45.0)
+if not DEBUG:
+    c,sn=np.cos(YAW),np.sin(YAW); Ry=np.array([[c,0,sn],[0,1,0],[-sn,0,c]])
+    nose=np.array([0,0,L/2])
+    for g in final:
+        g['v']=(g['v']-nose)@Ry.T+np.array([0,0,-NOSE_DIST]); g['n']=g['n']@Ry.T
+    # 1 mm anchor triangles on the ground so the bounding box is point-symmetric about the placement point
+    av=np.vstack([g['v'] for g in final]); mn,mx=av.min(0),av.max(0)
+    a_=max(abs(mn[0]),abs(mx[0])); b_=max(abs(mn[2]),abs(mx[2]))
+    for g in final:
+        if g['name']=='Rubber':
+            for sx in (-1,1):
+                for sz in (-1,1):
+                    n0=len(g['v'])
+                    g['v']=np.vstack([g['v'],[[sx*a_,0,sz*b_],[sx*a_+0.001,0,sz*b_],[sx*a_,0.001,sz*b_]]])
+                    g['n']=np.vstack([g['n'],[[0,0,1.0]]*3]); g['f']=np.vstack([g['f'],[[n0,n0+1,n0+2]]])
 allv=np.vstack([g['v'] for g in final]); print('bounds',allv.min(0).round(3),allv.max(0).round(3))
 
 def lin(c): c=np.asarray(c)/255.0; return np.where(c<=0.04045,c/12.92,((c+0.055)/1.055)**2.4)
@@ -53,7 +60,8 @@ gl={'asset':{'version':'2.0','generator':'a350-ar procedural (fan model)','copyr
 js=json.dumps(gl,separators=(',',':')).encode()
 while len(js)%4: js+=b' '
 out=struct.pack('<III',0x46546C67,2,12+8+len(js)+8+len(bin_))+struct.pack('<II',len(js),0x4E4F534A)+js+struct.pack('<II',len(bin_),0x004E4942)+bytes(bin_)
-open('jal-a350-900.glb','wb').write(out); print('glb',len(out))
+open('dbg.glb' if DEBUG else 'jal-a350-900.glb','wb').write(out); print('glb',len(out))
+if DEBUG: raise SystemExit
 # ---------------- USDZ
 from pxr import Usd,UsdGeom,UsdShade,Sdf,Gf,Vt,UsdUtils
 os.makedirs('usd_tmp',exist_ok=True)
